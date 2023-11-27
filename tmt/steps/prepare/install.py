@@ -188,6 +188,7 @@ class InstallBase(tmt.utils.Common):
         """ Enable requested copr repositories """
         # FIXME: cast() - https://github.com/teemtee/tmt/issues/1372
         coprs = cast(PrepareInstall, self.parent).get('copr')
+        copr_chroot = cast(PrepareInstall, self.parent).get('copr_chroot')
         if not coprs:
             return
         # Try to install copr plugin
@@ -205,11 +206,18 @@ class InstallBase(tmt.utils.Common):
         # Enable repositories using copr plugin
         else:
             for copr in coprs:
-                self.info('copr', copr, 'green')
-                self.perform_operation(
-                    Command('copr'),
-                    Command('enable', '-y', copr)
-                    )
+                if  copr_chroot is not None:
+                    self.info('copr', copr, 'green')
+                    self.perform_operation(
+                        Command('copr'),
+                        Command('enable', '-y', copr, copr_chroot[0])
+                        )
+                else:
+                    self.info('copr', copr, 'green')
+                    self.perform_operation(
+                        Command('copr'),
+                        Command('enable', '-y', copr)
+                        )
 
     def prepare_install_local(self) -> None:
         """ Copy packages to the test system """
@@ -497,6 +505,15 @@ class PrepareInstallData(tmt.steps.prepare.PrepareStepData):
         metavar='REPO',
         multiple=True,
         help='Copr repository to be enabled.',
+        normalize=tmt.utils.normalize_string_list
+        )
+
+    copr_chroot: list[str] = field(
+        default_factory=list,
+        option=('-a', '--copr-chroot'),
+        metavar='COPR_CHROOT',
+        multiple=False,
+        help='Copr arch to be used when enabling repo',
         normalize=tmt.utils.normalize_string_list
         )
 
